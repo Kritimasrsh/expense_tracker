@@ -1,23 +1,11 @@
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    AsyncSession,
-    async_sessionmaker
-)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-from sqlalchemy.orm import declarative_base
-from dotenv import load_dotenv
-import os
+DATABASE_URL = "postgresql+asyncpg://postgres:20601224@localhost:5432/expense_db"
 
-load_dotenv()
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=True
-)
-
-AsyncSessionLocal = async_sessionmaker(
+SessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False
@@ -25,8 +13,6 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
-
 async def get_db():
-
-    async with AsyncSessionLocal() as session:
+    async with SessionLocal() as session:
         yield session

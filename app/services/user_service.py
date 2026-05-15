@@ -1,20 +1,46 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from fastapi import HTTPException
 from app.models.user import User
-from app.schema.user import UserCreate
+from app.auth import hash_password
 
 
-def create_user(db: Session, user: UserCreate):
-    db_user = User(
-        name=user.name,
-        email=user.email
-    )
+class UserService:
 
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    @staticmethod
+    async def get_by_id(db, user_id: int):
+        result = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+        return result.scalar_one_or_none()
 
-    return db_user
+    @staticmethod
+    async def update(db, user, data):
+        update_data = data.dict(exclude_unset=True)
 
+        if update_data.get("email"):
+            result = await db.execute(
+                select(User).where(User.email == update_data["email"])
+            )
+            existing_user = result.scalar_one_or_none()
 
-def get_users(db: Session):
-    return db.query(User).all()
+            if existing_user and existing_user.id != user.id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email already exists"
+                )
+
+        if update_data.get("password"):
+            update_data["password"] = hash_password(update_data["password"])
+
+        for key, value in update_data.items():
+            setattr(user, key, value)
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+
+    @staticmethod
+    async def delete(db, user):
+        await db.delete(user)
+        await db.commit()
