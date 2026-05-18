@@ -1,2 +1,26 @@
+# virtual environments
 .venv/
+venv/
+
+# python cache
+__pycache__/
+*.pyc
+
+# environment variables
 .env
+
+# logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
+node_modules/
+dist/
+build/

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
+
+
 import {
   PieChart,
   Pie,
@@ -21,6 +23,14 @@ export default function Dashboard() {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
 
+
+  // PROFILE STATES (ADDED)
+  const [user, setUser] = useState(null);
+  const [file, setFile] = useState(null);
+
+  const [preview, setPreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
   const navigate = useNavigate();
 
   const loadExpenses = async () => {
@@ -36,14 +46,25 @@ export default function Dashboard() {
     }
   };
 
+  // PROFILE LOAD (ADDED)
+   const loadUser = async () => {
+    try {
+    const res = await api.get("/user/me");
+    setUser(res.data);
+   } catch (err) {
+    console.log("Failed to load user", err);
+    }
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
+   const token = localStorage.getItem("token");
     if (!token) {
       navigate("/");
       return;
-    }
+   }
 
-    loadExpenses();
+   loadExpenses();
+   loadUser(); 
   }, [navigate]);
 
   const addExpense = async () => {
@@ -108,6 +129,35 @@ export default function Dashboard() {
     };
   });
 
+  // PROFILE HANDLERS (ADDED)
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const uploadProfile = async () => {
+    if (!selectedFile) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      await api.post("/user/upload-profile-picture", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setSelectedFile(null);
+      loadUser();
+    } catch (err) {
+      alert("Failed to upload profile picture");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-6">
 
@@ -120,6 +170,44 @@ export default function Dashboard() {
           <p className="text-slate-500">
             Track spending with insights
           </p>
+        </div>
+
+        {/* PROFILE UI (ADDED ONLY - NO CHANGE TO EXISTING CODE) */}
+        <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl shadow-sm">
+
+          <div className="w-12 h-12 rounded-full overflow-hidden border">
+            <img
+              src={
+                preview
+                  ? preview
+                  : user?.profile_picture
+                  ? `http://localhost:8000${user.profile_picture}`
+                  : "https://via.placeholder.com/100"
+              }
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div>
+            <p className="font-semibold">{user?.name || "User"}</p>
+            <p className="text-xs text-slate-500">{user?.email}</p>
+
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="text-xs mt-1"
+            />
+
+            {selectedFile && (
+              <button
+                onClick={uploadProfile}
+                className="text-xs bg-sky-500 text-white px-2 py-1 rounded mt-1"
+              >
+                Save
+              </button>
+            )}
+          </div>
+
         </div>
 
         <button
@@ -156,7 +244,7 @@ export default function Dashboard() {
 
       </div>
 
-      {/* MAIN DASHBOARD (FIXED EQUAL HEIGHT) */}
+      {/* MAIN DASHBOARD */}
       <div className="flex flex-col lg:flex-row gap-6 min-h-[75vh]">
 
         {/* LEFT SIDE */}

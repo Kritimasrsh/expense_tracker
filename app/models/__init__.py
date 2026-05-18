@@ -1,3 +1,3 @@
-from .user import User
-from .expense import Expense
-from .otp import OTP
+from app.models.user import User
+from app.models.otp import OTP
+from app.models.expense import Expense

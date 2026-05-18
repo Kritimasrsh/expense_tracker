@@ -14,16 +14,19 @@ export default function Login() {
   const [pendingEmail, setPendingEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  const [error, setError] = useState(""); // NEW: UI error state
+
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Fill all fields");
+      setError("Fill all fields"); // UI error instead of alert
       return;
     }
 
     try {
       setLoading(true);
+      setError(""); // clear previous errors
 
       const res = await api.post("/auth/login", {
         email,
@@ -32,15 +35,14 @@ export default function Login() {
 
       setPendingEmail(email);
       setStep("otp");
-      setMessage(res.data.message || "OTP sent to your email.");
+      setMessage(res.data.message || "OTP sent to your email."); // success message
 
       if (res.data.debug_otp) {
-        setMessage(
-          `OTP sent. Use this development code: ${res.data.debug_otp}`
-        );
+        console.log("Development OTP received"); // debug only
       }
+
     } catch (err) {
-      alert(err.response?.data?.detail || "Invalid credentials");
+      setError(err.response?.data?.detail || "Invalid credentials"); // backend error shown in UI
     } finally {
       setLoading(false);
     }
@@ -48,12 +50,13 @@ export default function Login() {
 
   const handleVerifyOtp = async () => {
     if (!otp || !pendingEmail) {
-      alert("Enter the OTP");
+      setError("Enter the OTP"); // UI error instead of alert
       return;
     }
 
     try {
       setLoading(true);
+      setError(""); // clear errors
 
       const res = await api.post("/auth/verify-otp", {
         email: pendingEmail,
@@ -61,9 +64,11 @@ export default function Login() {
       });
 
       localStorage.setItem("token", res.data.access_token);
-      navigate("/dashboard");
+
+      navigate("/dashboard"); // redirect after success
+
     } catch (err) {
-      alert(err.response?.data?.detail || "Invalid OTP");
+      setError(err.response?.data?.detail || "Invalid OTP"); // show OTP error in UI
     } finally {
       setLoading(false);
     }
@@ -74,6 +79,7 @@ export default function Login() {
     setOtp("");
     setMessage("");
     setPendingEmail("");
+    setError(""); // clear error on reset
   };
 
   return (
@@ -81,7 +87,7 @@ export default function Login() {
 
       <div className="w-full max-w-5xl bg-white rounded-3xl overflow-hidden shadow-2xl grid md:grid-cols-2">
 
-        {/* LEFT */}
+        {/* LEFT SIDE UI */}
         <div className="hidden md:flex flex-col justify-center bg-gradient-to-br from-sky-500 to-blue-600 text-white p-14">
 
           <h1 className="text-5xl font-bold leading-tight">
@@ -95,18 +101,26 @@ export default function Login() {
 
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT SIDE UI */}
         <div className="p-10 md:p-14 flex flex-col justify-center">
 
           <h2 className="text-3xl font-bold text-slate-800">
             Welcome Back
           </h2>
 
-          <p className="text-slate-500 mt-2 mb-8">
+          <p className="text-slate-500 mt-2 mb-4">
             Login to continue
           </p>
 
+          {/* NEW: ERROR DISPLAY UI */}
+          {error && (
+            <div className="bg-red-100 text-red-600 p-3 rounded-lg text-sm mb-4">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-5">
+
             {step === "password" ? (
               <>
                 <Input
@@ -128,6 +142,7 @@ export default function Login() {
               </>
             ) : (
               <>
+                {/* OTP INFO BOX */}
                 <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-700">
                   {message || `Enter the 6-digit code sent to ${pendingEmail}.`}
                 </div>
@@ -151,6 +166,7 @@ export default function Login() {
                 </button>
               </>
             )}
+
           </div>
 
           {step === "password" ? (

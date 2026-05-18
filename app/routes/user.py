@@ -1,106 +1,84 @@
-from typing import List
+import os
+import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.config.database import get_db
-from app.models.user import User
-from app.schema.user import UserCreate, UserUpdate, UserRead
-from app.services.user_service import UserService
-from app.auth import get_current_user, hash_password
+from app.models import User
+from app.auth import get_current_user
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/user", tags=["User"])
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# CREATE (C)
-@router.post("/", response_model=UserRead)
-async def create_user(
-    data: UserCreate,
+# GET USER PROFILE
+@router.get("/me")
+async def get_me(
+    current=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-
-    existing = await db.execute(
-        select(User).where(User.email == data.email)
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already exists")
-
-    new_user = User(
-        email=data.email,
-        password=hash_password(data.password)
-    )
-
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-
-    return new_user
-
-
-# READ ALL (R)
-@router.get("/", response_model=List[UserRead])
-async def get_users(db: AsyncSession = Depends(get_db)):
-
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-
-    return users
-
-
-# READ ONE (R)
-@router.get("/{user_id}", response_model=UserRead)
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
-
     result = await db.execute(
-        select(User).where(User.id == user_id)
+        select(User).where(User.id == current["user_id"])
     )
     user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return user
+    return {
+        "name": user.name,
+        "email": user.email,
+        "profile_picture": user.profile_picture
+    }
 
 
-# UPDATE (U)
-@router.put("/{user_id}", response_model=UserRead)
-async def update_user(
-    user_id: int,
-    data: UserUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user)
+# UPLOAD PROFILE PICTURE
+@router.post("/upload-profile-picture")
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    current=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
+    result = await db.execute(
+        select(User).where(User.id == current["user_id"])
+    )
+    user = result.scalar_one_or_none()
 
-    if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Operation not permitted")
-
-    db_user = await UserService.get_by_id(db, user_id)
-
-    if not db_user:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    updated_user = await UserService.update(db, db_user, data)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Invalid file")
 
-    return updated_user
+    file_ext = file.filename.split(".")[-1].lower()
+    allowed_ext = ["jpg", "jpeg", "png", "webp"]
 
+    if file_ext not in allowed_ext:
+        raise HTTPException(
+            status_code=400,
+            detail="Only jpg, jpeg, png, webp allowed"
+        )
 
-# DELETE (D)
-@router.delete("/{user_id}")
-async def delete_user(
-    user_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
+    # 🔥 FIX 1: unique filename (prevents caching + weird overwrites)
+    file_name = f"user_{user.id}_{int(time.time())}.{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
 
-    if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Operation not permitted")
+    # save file
+    contents = await file.read()
+    with open(file_path, "wb") as buffer:
+        buffer.write(contents)
 
-    db_user = await UserService.get_by_id(db, user_id)
+    # 🔥 FIX 2: store full correct path
+    user.profile_picture = f"/uploads/{file_name}"
 
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    await db.commit()
+    await db.refresh(user)
 
-    await UserService.delete(db, db_user)
-
-    return {"message": "User deleted successfully"}
+    return {
+        "success": True,
+        "profile_picture": user.profile_picture
+    }
