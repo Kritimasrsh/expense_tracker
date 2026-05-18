@@ -81,7 +81,7 @@ async def send_email(email: str, subject: str, body: str):
     await fastmail.send_message(message)
 
 
-# ---------------- SIGNUP ----------------
+#SIGNUP
 @router.post("/signup")
 async def signup(data: SignupSchema, db: AsyncSession = Depends(get_db)):
 
@@ -101,7 +101,7 @@ async def signup(data: SignupSchema, db: AsyncSession = Depends(get_db)):
     return {"success": True, "message": "Account created"}
 
 
-# ---------------- LOGIN ----------------
+#LOGIN
 @router.post("/login")
 async def login(
     data: LoginSchema,
@@ -140,7 +140,7 @@ async def login(
     return {"success": True, "message": "OTP sent"}
 
 
-# ---------------- VERIFY OTP ----------------
+#VERIFY OTP 
 @router.post("/verify-otp")
 async def verify_otp(data: OTPVerifySchema, db: AsyncSession = Depends(get_db)):
 
@@ -180,7 +180,7 @@ async def verify_otp(data: OTPVerifySchema, db: AsyncSession = Depends(get_db)):
     }
 
 
-# ---------------- FORGOT PASSWORD ----------------
+#FORGOT PASSWORD
 @router.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordSchema, db: AsyncSession = Depends(get_db)):
 
@@ -206,7 +206,7 @@ async def forgot_password(data: ForgotPasswordSchema, db: AsyncSession = Depends
     return {"success": True, "message": "Reset link sent"}
 
 
-# ---------------- RESET PASSWORD ----------------
+#RESET PASSWORD 
 @router.post("/reset-password/{token}")
 async def reset_password(
     token: str = Path(...),
