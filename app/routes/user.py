@@ -63,7 +63,7 @@ async def upload_profile_picture(
             detail="Only jpg, jpeg, png, webp allowed"
         )
 
-    # 🔥 FIX 1: unique filename (prevents caching + weird overwrites)
+
     file_name = f"user_{user.id}_{int(time.time())}.{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, file_name)
 
@@ -72,7 +72,7 @@ async def upload_profile_picture(
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    # 🔥 FIX 2: store full correct path
+    
     user.profile_picture = f"/uploads/{file_name}"
 
     await db.commit()

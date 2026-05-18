@@ -17,7 +17,7 @@ from app.auth import hash_password, verify_password, create_token, verify_token
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-# ---------------- SCHEMAS ----------------
+#SCHEMAS
 class SignupSchema(BaseModel):
     name: str
     email: EmailStr
@@ -42,12 +42,12 @@ class ResetPasswordSchema(BaseModel):
     password: str
 
 
-# ---------------- OTP ----------------
+#OTP
 def generate_otp():
     return str(randint(100000, 999999))
 
 
-# ---------------- EMAIL TEMPLATES ----------------
+#EMAIL TEMPLATES
 def build_otp_email(code: str):
     return f"""
     <div style="font-family:Arial;padding:20px">
@@ -70,7 +70,7 @@ def build_reset_email(link: str):
     """
 
 
-# ---------------- EMAIL SENDER ----------------
+#EMAIL SENDER
 async def send_email(email: str, subject: str, body: str):
     message = MessageSchema(
         subject=subject,
