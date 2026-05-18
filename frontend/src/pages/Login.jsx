@@ -14,19 +14,19 @@ export default function Login() {
   const [pendingEmail, setPendingEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  const [error, setError] = useState(""); // NEW: UI error state
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Fill all fields"); // UI error instead of alert
+      setError("Fill all fields"); 
       return;
     }
 
     try {
       setLoading(true);
-      setError(""); // clear previous errors
+      setError(""); 
 
       const res = await api.post("/auth/login", {
         email,
@@ -38,7 +38,7 @@ export default function Login() {
       setMessage(res.data.message || "OTP sent to your email."); // success message
 
       if (res.data.debug_otp) {
-        console.log("Development OTP received"); // debug only
+        console.log("Development OTP received"); 
       }
 
     } catch (err) {
@@ -50,7 +50,7 @@ export default function Login() {
 
   const handleVerifyOtp = async () => {
     if (!otp || !pendingEmail) {
-      setError("Enter the OTP"); // UI error instead of alert
+      setError("Enter the OTP"); 
       return;
     }
 
@@ -65,10 +65,10 @@ export default function Login() {
 
       localStorage.setItem("token", res.data.access_token);
 
-      navigate("/dashboard"); // redirect after success
+      navigate("/dashboard"); 
 
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid OTP"); // show OTP error in UI
+      setError(err.response?.data?.detail || "Invalid OTP"); 
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function Login() {
     setOtp("");
     setMessage("");
     setPendingEmail("");
-    setError(""); // clear error on reset
+    setError(""); 
   };
 
   return (
